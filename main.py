@@ -1,2 +1,80 @@
-import zlib,base64
-exec(zlib.decompress(base64.b64decode('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')))
+# tiny-chess-01 starter (MIT, see LICENSE): a working entry to start from.
+# It plays every game of the gauntlet through the env at MAKEFUN_ENV_URL:
+# POST /game {} serves the game in play, POST /move {game, move} plays a
+# move, and the loop ends when the env answers status "done".
+#
+# Its chess is one line deep: of the legal moves the env lists, it plays the
+# one that captures the most valuable piece, read from the FEN. Ties go, in
+# order, to the better promotion, the cheaper moving piece, then the first
+# move in UCI order. No clock and no random: the same position always gets
+# the same move, so the trial's replay matches.
+#
+# Make it stronger with a real search under a fixed node or depth budget,
+# never a clock. The rule: this file is the whole engine, at most 4,096
+# bytes as committed, Python 3.13 standard library only.
+
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+
+ENV_URL = os.environ.get("MAKEFUN_ENV_URL") or sys.exit("MAKEFUN_ENV_URL is not set")
+
+# Piece values by FEN letter, case-insensitive. The king is never captured;
+# its 100 only ranks it last as the moving piece.
+VALUE = {"p": 1, "n": 3, "b": 3, "r": 5, "q": 9, "k": 100}
+
+
+def post(path, body):
+    """POST a JSON body to the env and return its JSON answer."""
+    req = urllib.request.Request(
+        ENV_URL + path,
+        data=json.dumps(body).encode(),
+        headers={"content-type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req) as res:
+            return json.load(res)
+    except urllib.error.HTTPError as e:
+        sys.exit(f"{path}: HTTP {e.code} {e.read().decode(errors='replace')}")
+
+
+def board_of(fen):
+    """The FEN's pieces as {square: letter}, e.g. {"e1": "K", "e8": "k"}."""
+    board = {}
+    for i, row in enumerate(fen.split()[0].split("/")):
+        file = 0
+        for c in row:
+            if c.isdigit():
+                file += int(c)
+            else:
+                board["abcdefgh"[file] + str(8 - i)] = c
+                file += 1
+    return board
+
+
+def choose(fen, legal):
+    """The legal UCI move that takes the most, with the fixed tie-break."""
+    board = board_of(fen)
+
+    def rank(move):
+        mover = board[move[:2]].lower()
+        victim = board.get(move[2:4])
+        if victim is None and mover == "p" and move[0] != move[2]:
+            victim = "p"  # en passant: the pawn taken is beside the target
+        taken = VALUE[victim.lower()] if victim else 0
+        promo = VALUE[move[4]] if len(move) == 5 else 0
+        return (-taken, -promo, VALUE[mover], move)
+
+    return min(legal, key=rank)
+
+
+while True:
+    g = post("/game", {})
+    if g["status"] == "done":
+        break
+    while g["status"] == "your_move":
+        g = post("/move", {"game": g["game"], "move": choose(g["fen"], g["legal_moves"])})
+    print(f"game {g['game']}: {g['outcome']} by {g['reason']}", file=sys.stderr)
+print(f"done: {g.get('wins')} won, {g.get('draws')} drawn, {g.get('losses')} lost", file=sys.stderr)
