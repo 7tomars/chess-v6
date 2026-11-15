@@ -64,13 +64,13 @@ def gen(b,w,caps=False):
      if not caps:m.append((q,t,'',0))
      t+=delta
     if b[t]!=' 'and opp(b[t]):m.append((q,t,'',10000+V[b[t].upper()]*10-V[up]))
- k='Kk'[not w];leg=[]
+ leg=[]
  m.sort(key=lambda x:x[3],reverse=True)
  for f,t,pr,sc in m:
   sf,st=b[f],b[t]
   b[t]=(pr.upper() if w else pr) if pr else sf
   b[f]='.'
-  if not att(b,b.index(k),not w):leg.append((f,t,pr,sc))
+  if not att(b,b.index('Kk'[not w]),not w):leg.append((f,t,pr,sc))
   b[f],b[t]=sf,st
  return leg
 def ev(b):
@@ -80,11 +80,11 @@ def ev(b):
   if p in' .':continue
   up=p.upper();r,c=(q-21)//10,(q-21)%10;bn=0
   if up=='P':
-   bn=(7-r)*10 if p.isupper() else r*10
-   if 2<=c<=5 and 3<=r<=4:bn+=20
-  elif up in'NB':bn=(7-abs(2*c-7)-abs(2*r-7))*4
-  elif up=='R' and((p.isupper() and r==1)or(p.islower() and r==6)):bn=25
-  elif up=='K' and r in(0,7) and c in(1,2,6):bn=15
+   bn=(6-r)*3 if p.isupper() else (r-1)*3
+   if 2<=c<=5 and 3<=r<=4:bn+=10
+  elif up in'NB':bn=(7-abs(2*c-7)-abs(2*r-7))*2
+  elif up=='R' and((p.isupper() and r==1)or(p.islower() and r==6)):bn=20
+  elif up=='K' and r in(0,7) and c in(1,2,6):bn=10
   s+=(V[up]+bn) if p.isupper() else -(V[up]+bn)
  return s
 def ab(b,w,d,a,beta):
@@ -120,7 +120,7 @@ def choose(fen,legal):
   b[f]='.'
   is_c=sf in'Kk' and abs(f-t)==2 and t in CS
   if is_c:r1,r2=CS[t];b[r1],b[r2]=b[r2],'.'
-  sc=-ab(b,not w,2,-beta,-a)
+  sc=-ab(b,not w,3,-beta,-a)
   b[f],b[t]=sf,st
   if is_c:b[r2],b[r1]=b[r1],'.'
   if sc>best_s:best_s=sc;best_m=m
