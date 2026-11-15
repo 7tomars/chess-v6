@@ -8,7 +8,7 @@ B=[-11,-9,9,11]
 CS={97:(96,98),93:(94,91),27:(26,28),23:(24,21)}
 def post(p,b):
  with U.urlopen(U.Request(E+p,json.dumps(b).encode(),{'content-type':'application/json'})) as r:return json.load(r)
-def u2s(s):return 21+(8-int(s[1]))*10+(ord(s[0])-97)
+def u2s(s):return(8-int(s[1]))*10+ord(s[0])-76
 def board(f):
  b=[' ']*120;r=c=0
  for ch in f.split()[0]:
@@ -57,7 +57,7 @@ def gen(b,w,caps=False):
     if b[t]!=' 'and opp(b[t]):m.append((q,t,'',10000+V[b[t].upper()]*10-V[up]))
     elif not caps and b[t]=='.':m.append((q,t,'',0))
   else:
-   dirs={'R':R,'B':B}.get(up,K)
+   dirs=R if up=='R' else(B if up=='B' else K)
    for delta in dirs:
     t=q+delta
     while b[t]=='.':
@@ -68,7 +68,7 @@ def gen(b,w,caps=False):
  m.sort(key=lambda x:x[3],reverse=True)
  for f,t,pr,sc in m:
   sf,st=b[f],b[t]
-  b[t]=pr.upper() if(w and pr)else(pr.lower() if pr else sf)
+  b[t]=(pr.upper() if w else pr) if pr else sf
   b[f]='.'
   if not att(b,b.index(k),not w):leg.append((f,t,pr,sc))
   b[f],b[t]=sf,st
@@ -80,10 +80,11 @@ def ev(b):
   if p in' .':continue
   up=p.upper();r,c=(q-21)//10,(q-21)%10;bn=0
   if up=='P':
-   bn=(7-r)*8 if p.isupper() else r*8
-   if 2<=c<=5 and 3<=r<=4:bn+=15
+   bn=(7-r)*10 if p.isupper() else r*10
+   if 2<=c<=5 and 3<=r<=4:bn+=20
   elif up in'NB':bn=(7-abs(2*c-7)-abs(2*r-7))*4
-  elif up=='R' and((p.isupper() and r==1)or(p.islower() and r==6)):bn=20
+  elif up=='R' and((p.isupper() and r==1)or(p.islower() and r==6)):bn=25
+  elif up=='K' and r in(0,7) and c in(1,2,6):bn=15
   s+=(V[up]+bn) if p.isupper() else -(V[up]+bn)
  return s
 def ab(b,w,d,a,beta):
@@ -91,7 +92,7 @@ def ab(b,w,d,a,beta):
   sp=ev(b) if w else -ev(b)
   if sp>=beta:return beta
   if sp>a:a=sp
-  if d<-2:return a
+  if d<0:return a
  moves=gen(b,w,caps=(d<=0))
  if not moves:
   if d<=0:return a
@@ -99,7 +100,7 @@ def ab(b,w,d,a,beta):
   return 0
  for f,t,pr,_ in moves:
   sf,st=b[f],b[t]
-  b[t]=pr.upper() if(w and pr)else(pr.lower() if pr else sf)
+  b[t]=(pr.upper() if w else pr) if pr else sf
   b[f]='.'
   sc=-ab(b,not w,d-1,-beta,-a)
   b[f],b[t]=sf,st
@@ -107,19 +108,19 @@ def ab(b,w,d,a,beta):
   if sc>a:a=sc
  return a
 def choose(fen,legal):
- b=board(fen);w=fen.split()[1]=='w';best_m=legal[0];best_s=-1000000
+ b=board(fen);w=fen.split()[1]=='w';best_m=legal[0];best_s=-1e9
  def rk(m):
   t=u2s(m[2:4])
   return (10000+V[b[t].upper()]*10-V[b[u2s(m[:2])].upper()]) if b[t] not in' .' else 0
- a=-1000000;beta=1000000
+ a,beta=-1000000,1000000
  for m in sorted(legal,key=rk,reverse=True):
   f,t=u2s(m[:2]),u2s(m[2:4]);pr=m[4:] if len(m)==5 else ''
   sf,st=b[f],b[t]
-  b[t]=pr.upper() if(w and pr)else(pr.lower() if pr else sf)
+  b[t]=(pr.upper() if w else pr) if pr else sf
   b[f]='.'
   is_c=sf in'Kk' and abs(f-t)==2 and t in CS
   if is_c:r1,r2=CS[t];b[r1],b[r2]=b[r2],'.'
-  sc=-ab(b,not w,3,-beta,-a)
+  sc=-ab(b,not w,2,-beta,-a)
   b[f],b[t]=sf,st
   if is_c:b[r2],b[r1]=b[r1],'.'
   if sc>best_s:best_s=sc;best_m=m
