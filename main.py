@@ -1,120 +1,132 @@
-import os, sys, json, urllib.request as U
-E = os.environ.get('MAKEFUN_ENV_URL') or sys.exit(1)
-V = {'P':100, 'N':320, 'B':330, 'R':500, 'Q':900, 'K':20000}
-N = [-21, -19, -12, -8, 8, 12, 19, 21]
-K = [-11, -10, -9, -1, 1, 9, 10, 11]
-R = [-10, 10, -1, 1]
-B = [-11, -9, 9, 11]
-def post(p, b):
-  req = U.Request(E + p, json.dumps(b).encode(), {'content-type':'application/json'})
-  with U.urlopen(req) as res: return json.load(res)
-def u2s(s): return 21 + (8 - int(s[1])) * 10 + (ord(s[0]) - 97)
-def s2u(sq): return chr(97 + (sq - 21) % 10) + str(8 - (sq - 21) // 10)
-def board(fen):
-  b = [' '] * 120
-  r = c = 0
-  for ch in fen.split()[0]:
-    if ch == '/': r += 1; c = 0
-    elif ch.isdigit():
-      for _ in range(int(ch)): b[21 + r*10 + c] = '.'; c += 1
-    else: b[21 + r*10 + c] = ch; c += 1
-  return b
-def att(b, sq, w):
-  pw, rq, bq = ('P', 'RQ', 'BQ') if w else ('p', 'rq', 'bq')
-  if b[sq + (9 if w else -9)] == pw or b[sq + (11 if w else -11)] == pw: return 1
-  kn, kk = ('N', 'K') if w else ('n', 'k')
-  for d in N:
-    if b[sq + d] == kn: return 1
-  for d in K:
-    if b[sq + d] == kk: return 1
-  for d in R:
-    t = sq + d
-    while b[t] == '.': t += d
-    if b[t] in rq: return 1
-  for d in B:
-    t = sq + d
-    while b[t] == '.': t += d
-    if b[t] in bq: return 1
+import os,sys,json,urllib.request as U
+E=os.environ['MAKEFUN_ENV_URL']
+V={'P':100,'N':320,'B':330,'R':500,'Q':900,'K':20000}
+N=[-21,-19,-12,-8,8,12,19,21]
+K=[-11,-10,-9,-1,1,9,10,11]
+R=[-10,10,-1,1]
+B=[-11,-9,9,11]
+CS={97:(96,98),93:(94,91),27:(26,28),23:(24,21)}
+def post(p,b):
+ with U.urlopen(U.Request(E+p,json.dumps(b).encode(),{'content-type':'application/json'})) as r:return json.load(r)
+def u2s(s):return 21+(8-int(s[1]))*10+(ord(s[0])-97)
+def board(f):
+ b=[' ']*120;r=c=0
+ for ch in f.split()[0]:
+  if ch=='/':r+=1;c=0
+  elif ch.isdigit():
+   for _ in range(int(ch)):b[21+r*10+c]='.';c+=1
+  else:b[21+r*10+c]=ch;c+=1
+ return b
+def att(b,q,w):
+ pw,rq,bq=('P','RQ','BQ') if w else ('p','rq','bq')
+ if b[q+(9 if w else -9)]==pw or b[q+(11 if w else -11)]==pw:return 1
+ for d in N:
+  if b[q+d]==('N' if w else 'n'):return 1
+ for d in K:
+  if b[q+d]==('K' if w else 'k'):return 1
+ for dirs,pcs in((R,rq),(B,bq)):
+  for d in dirs:
+   t=q+d
+   while b[t]=='.':t+=d
+   if b[t] in pcs:return 1
+ return 0
+def gen(b,w,caps=False):
+ m=[];d=-10 if w else 10;opp=(lambda p:p.islower()) if w else (lambda p:p.isupper())
+ for q in range(21,99):
+  p=b[q]
+  if p in' .'or(w!=p.isupper()):continue
+  up=p.upper()
+  if up=='P':
+   if not caps:
+    if b[q+d]=='.':
+     if(w and q+d<=28)or(not w and q+d>=91):
+      for pr in'qrbn':m.append((q,q+d,pr,0))
+     else:
+      m.append((q,q+d,'',0))
+      if((w and 81<=q<=88)or(not w and 31<=q<=38))and b[q+2*d]=='.':m.append((q,q+2*d,'',0))
+   for cd in(-1,1):
+    t=q+d+cd
+    if b[t] not in' .'and opp(b[t]):
+     vic=V[b[t].upper()]
+     if(w and t<=28)or(not w and t>=91):
+      for pr in'qrbn':m.append((q,t,pr,10000+vic*10-100))
+     else:m.append((q,t,'',10000+vic*10-100))
+  elif up in'NK':
+   for delta in(N if up=='N' else K):
+    t=q+delta
+    if b[t]!=' 'and opp(b[t]):m.append((q,t,'',10000+V[b[t].upper()]*10-V[up]))
+    elif not caps and b[t]=='.':m.append((q,t,'',0))
+  else:
+   dirs={'R':R,'B':B}.get(up,K)
+   for delta in dirs:
+    t=q+delta
+    while b[t]=='.':
+     if not caps:m.append((q,t,'',0))
+     t+=delta
+    if b[t]!=' 'and opp(b[t]):m.append((q,t,'',10000+V[b[t].upper()]*10-V[up]))
+ k='Kk'[not w];leg=[]
+ m.sort(key=lambda x:x[3],reverse=True)
+ for f,t,pr,sc in m:
+  sf,st=b[f],b[t]
+  b[t]=pr.upper() if(w and pr)else(pr.lower() if pr else sf)
+  b[f]='.'
+  if not att(b,b.index(k),not w):leg.append((f,t,pr,sc))
+  b[f],b[t]=sf,st
+ return leg
+def ev(b):
+ s=0
+ for q in range(21,99):
+  p=b[q]
+  if p in' .':continue
+  up=p.upper();r,c=(q-21)//10,(q-21)%10;bn=0
+  if up=='P':
+   bn=(7-r)*8 if p.isupper() else r*8
+   if 2<=c<=5 and 3<=r<=4:bn+=15
+  elif up in'NB':bn=(7-abs(2*c-7)-abs(2*r-7))*4
+  elif up=='R' and((p.isupper() and r==1)or(p.islower() and r==6)):bn=20
+  s+=(V[up]+bn) if p.isupper() else -(V[up]+bn)
+ return s
+def ab(b,w,d,a,beta):
+ if d<=0:
+  sp=ev(b) if w else -ev(b)
+  if sp>=beta:return beta
+  if sp>a:a=sp
+  if d<-2:return a
+ moves=gen(b,w,caps=(d<=0))
+ if not moves:
+  if d<=0:return a
+  if att(b,b.index('Kk'[not w]),not w):return -90000-d
   return 0
-def gen(b, w):
-  m = []
-  d = -10 if w else 10
-  opp = (lambda p: p.islower()) if w else (lambda p: p.isupper())
-  for sq in range(21, 99):
-    p = b[sq]
-    if p in ' .' or (w != p.isupper()): continue
-    up = p.upper()
-    if up == 'P':
-      if b[sq + d] == '.':
-        if (w and sq + d <= 28) or (not w and sq + d >= 91):
-          for pr in 'qrbn': m.append((sq, sq + d, pr))
-        else:
-          m.append((sq, sq + d, ''))
-          if ((w and 81 <= sq <= 88) or (not w and 31 <= sq <= 38)) and b[sq + 2*d] == '.':
-            m.append((sq, sq + 2*d, ''))
-      for cd in (-1, 1):
-        t = sq + d + cd
-        if b[t] not in ' .' and opp(b[t]):
-          if (w and t <= 28) or (not w and t >= 91):
-            for pr in 'qrbn': m.append((sq, t, pr))
-          else: m.append((sq, t, ''))
-    elif up in 'NK':
-      for delta in (N if up == 'N' else K):
-        t = sq + delta
-        if b[t] == '.' or (b[t] != ' ' and opp(b[t])): m.append((sq, t, ''))
-    else:
-      dirs = R if up == 'R' else (B if up == 'B' else K)
-      for delta in dirs:
-        t = sq + delta
-        while b[t] == '.': m.append((sq, t, '')); t += delta
-        if b[t] != ' ' and opp(b[t]): m.append((sq, t, ''))
-  leg = []
-  k = 'K' if w else 'k'
-  for f, t, pr in m:
-    sf, st = b[f], b[t]
-    b[t] = pr.upper() if (w and pr) else (pr.lower() if pr else sf)
-    b[f] = '.'
-    if not att(b, b.index(k), not w): leg.append((f, t, pr))
-    b[f], b[t] = sf, st
-  return leg
-def score(b):
-  return sum(V[p] if p in V else -V[p.upper()] for p in b if p.upper() in V)
-def ab(b, w, depth, alpha, beta):
-  if depth == 0:
-    s = score(b)
-    return s if w else -s
-  moves = gen(b, w)
-  if not moves:
-    k = 'K' if w else 'k'
-    if att(b, b.index(k), not w): return -90000 - depth
-    return 0
-  for f, t, pr in moves:
-    sf, st = b[f], b[t]
-    b[t] = pr.upper() if (w and pr) else (pr.lower() if pr else sf)
-    b[f] = '.'
-    val = -ab(b, not w, depth - 1, -beta, -alpha)
-    b[f], b[t] = sf, st
-    if val >= beta: return beta
-    if val > alpha: alpha = val
-  return alpha
-def choose(fen, legal):
-  b = board(fen)
-  w = fen.split()[1] == 'w'
-  best_m, best_s = legal[0], -1e9
-  alpha, beta = -1e9, 1e9
-  for m in legal:
-    f, t = u2s(m[:2]), u2s(m[2:4])
-    pr = m[4:] if len(m) == 5 else ''
-    sf, st = b[f], b[t]
-    b[t] = pr.upper() if (w and pr) else (pr.lower() if pr else sf)
-    b[f] = '.'
-    val = -ab(b, not w, 2, -beta, -alpha)
-    b[f], b[t] = sf, st
-    if val > best_s: best_s, best_m = val, m
-    if val > alpha: alpha = val
-  return best_m
+ for f,t,pr,_ in moves:
+  sf,st=b[f],b[t]
+  b[t]=pr.upper() if(w and pr)else(pr.lower() if pr else sf)
+  b[f]='.'
+  sc=-ab(b,not w,d-1,-beta,-a)
+  b[f],b[t]=sf,st
+  if sc>=beta:return beta
+  if sc>a:a=sc
+ return a
+def choose(fen,legal):
+ b=board(fen);w=fen.split()[1]=='w';best_m=legal[0];best_s=-1000000
+ def rk(m):
+  t=u2s(m[2:4])
+  return (10000+V[b[t].upper()]*10-V[b[u2s(m[:2])].upper()]) if b[t] not in' .' else 0
+ a=-1000000;beta=1000000
+ for m in sorted(legal,key=rk,reverse=True):
+  f,t=u2s(m[:2]),u2s(m[2:4]);pr=m[4:] if len(m)==5 else ''
+  sf,st=b[f],b[t]
+  b[t]=pr.upper() if(w and pr)else(pr.lower() if pr else sf)
+  b[f]='.'
+  is_c=sf in'Kk' and abs(f-t)==2 and t in CS
+  if is_c:r1,r2=CS[t];b[r1],b[r2]=b[r2],'.'
+  sc=-ab(b,not w,3,-beta,-a)
+  b[f],b[t]=sf,st
+  if is_c:b[r2],b[r1]=b[r1],'.'
+  if sc>best_s:best_s=sc;best_m=m
+  if sc>a:a=sc
+ return best_m
 while 1:
-  g = post('/game', {})
-  if g['status'] == 'done': break
-  while g['status'] == 'your_move':
-    g = post('/move', {'game': g['game'], 'move': choose(g['fen'], g['legal_moves'])})
+ g=post('/game',{})
+ if g['status']=='done':break
+ while g['status']=='your_move':
+  g=post('/move',{'game':g['game'],'move':choose(g['fen'],g['legal_moves'])})
