@@ -5,7 +5,6 @@ N=[-21,-19,-12,-8,8,12,19,21]
 K=[-11,-10,-9,-1,1,9,10,11]
 R=[-10,10,-1,1]
 B=[-11,-9,9,11]
-CS={97:(96,98),93:(94,91),27:(26,28),23:(24,21)}
 def post(p,b):
  with U.urlopen(U.Request(E+p,json.dumps(b).encode(),{'content-type':'application/json'})) as r:return json.load(r)
 def u2s(s):return(8-int(s[1]))*10+ord(s[0])-76
@@ -31,7 +30,7 @@ def att(b,q,w):
    if b[t] in pcs:return 1
  return 0
 def gen(b,w,caps=False):
- m=[];d=-10 if w else 10;opp=(lambda p:p.islower()) if w else (lambda p:p.isupper())
+ m=[];d=-10 if w else 10;opp=str.islower if w else str.isupper
  for q in range(21,99):
   p=b[q]
   if p in' .'or(w!=p.isupper()):continue
@@ -78,14 +77,15 @@ def ev(b):
  for q in range(21,99):
   p=b[q]
   if p in' .':continue
-  up=p.upper();r,c=(q-21)//10,(q-21)%10;bn=0
+  up=p.upper();w=p.isupper();r,c=(q-21)//10,(q-21)%10;bn=0
   if up=='P':
-   bn=(6-r)*3 if p.isupper() else (r-1)*3
+   bn=(6-r)*3 if w else (r-1)*3
    if 2<=c<=5 and 3<=r<=4:bn+=10
   elif up in'NB':bn=(7-abs(2*c-7)-abs(2*r-7))*2
-  elif up=='R' and((p.isupper() and r==1)or(p.islower() and r==6)):bn=20
+  elif up=='R' and((w and r==1)or(not w and r==6)):bn=20
   elif up=='K' and r in(0,7) and c in(1,2,6):bn=10
-  s+=(V[up]+bn) if p.isupper() else -(V[up]+bn)
+  if up in'NBRQ' and att(b,q,not w) and not att(b,q,w):bn-=V[up]//2
+  s+=(V[up]+bn) if w else -(V[up]+bn)
  return s
 def ab(b,w,d,a,beta):
  if d<=0:
@@ -112,14 +112,14 @@ def choose(fen,legal):
  def rk(m):
   t=u2s(m[2:4])
   return (10000+V[b[t].upper()]*10-V[b[u2s(m[:2])].upper()]) if b[t] not in' .' else 0
- a,beta=-1000000,1000000
+ a,beta=-1e9,1e9
  for m in sorted(legal,key=rk,reverse=True):
   f,t=u2s(m[:2]),u2s(m[2:4]);pr=m[4:] if len(m)==5 else ''
   sf,st=b[f],b[t]
   b[t]=(pr.upper() if w else pr) if pr else sf
   b[f]='.'
-  is_c=sf in'Kk' and abs(f-t)==2 and t in CS
-  if is_c:r1,r2=CS[t];b[r1],b[r2]=b[r2],'.'
+  is_c=sf in'Kk' and abs(f-t)==2
+  if is_c:r1,r2=(f+t)//2,(f+3 if t>f else f-4);b[r1],b[r2]=b[r2],'.'
   sc=-ab(b,not w,3,-beta,-a)
   b[f],b[t]=sf,st
   if is_c:b[r2],b[r1]=b[r1],'.'
