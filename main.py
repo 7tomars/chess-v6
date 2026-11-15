@@ -1,28 +1,27 @@
 import os,sys,json,urllib.request as U
 E=os.environ['MAKEFUN_ENV_URL']
 V={'P':100,'N':320,'B':330,'R':500,'Q':900,'K':20000}
-N=[-21,-19,-12,-8,8,12,19,21]
-K=[-11,-10,-9,-1,1,9,10,11]
-R=[-10,10,-1,1]
-B=[-11,-9,9,11]
+N,K,R,B=[-21,-19,-12,-8,8,12,19,21],[-11,-10,-9,-1,1,9,10,11],[-10,10,-1,1],[-11,-9,9,11]
+PA,PC,KP=[0,0,4,8,14,24,40,0],[0,0,0,10,15,10,5,0],[20,25,10,0,0,10,25,20]
 def post(p,b):
  with U.urlopen(U.Request(E+p,json.dumps(b).encode(),{'content-type':'application/json'})) as r:return json.load(r)
 def u2s(s):return(8-int(s[1]))*10+ord(s[0])-76
 def board(f):
  b=[' ']*120;r=c=0
+ for q in range(21,99):
+  if 1<=q%10<=8:b[q]='.'
  for ch in f.split()[0]:
   if ch=='/':r+=1;c=0
-  elif ch.isdigit():
-   for _ in range(int(ch)):b[21+r*10+c]='.';c+=1
+  elif ch.isdigit():c+=int(ch)
   else:b[21+r*10+c]=ch;c+=1
  return b
 def att(b,q,w):
  pw,rq,bq=('P','RQ','BQ') if w else ('p','rq','bq')
- if b[q+(9 if w else -9)]==pw or b[q+(11 if w else -11)]==pw:return 1
- for d in N:
-  if b[q+d]==('N' if w else 'n'):return 1
- for d in K:
-  if b[q+d]==('K' if w else 'k'):return 1
+ d=9 if w else -9
+ if b[q+d]==pw or b[q+d+2]==pw:return 1
+ for d,pc in((N,'N' if w else 'n'),(K,'K' if w else 'k')):
+  for delta in d:
+   if b[q+delta]==pc:return 1
  for dirs,pcs in((R,rq),(B,bq)):
   for d in dirs:
    t=q+d
@@ -42,10 +41,10 @@ def gen(b,w,caps=False):
       for pr in'qrbn':m.append((q,q+d,pr,0))
      else:
       m.append((q,q+d,'',0))
-      if((w and 81<=q<=88)or(not w and 31<=q<=38))and b[q+2*d]=='.':m.append((q,q+2*d,'',0))
+      if(81<=q<=88 if w else 31<=q<=38)and b[q+2*d]=='.':m.append((q,q+2*d,'',0))
    for cd in(-1,1):
     t=q+d+cd
-    if b[t] not in' .'and opp(b[t]):
+    if b[t]!=' 'and opp(b[t]):
      vic=V[b[t].upper()]
      if(w and t<=28)or(not w and t>=91):
       for pr in'qrbn':m.append((q,t,pr,10000+vic*10-100))
@@ -56,7 +55,7 @@ def gen(b,w,caps=False):
     if b[t]!=' 'and opp(b[t]):m.append((q,t,'',10000+V[b[t].upper()]*10-V[up]))
     elif not caps and b[t]=='.':m.append((q,t,'',0))
   else:
-   dirs=R if up=='R' else(B if up=='B' else K)
+   dirs=R if up=='R'else(B if up=='B'else K)
    for delta in dirs:
     t=q+delta
     while b[t]=='.':
@@ -77,15 +76,13 @@ def ev(b):
  for q in range(21,99):
   p=b[q]
   if p in' .':continue
-  up=p.upper();w=p.isupper();r,c=(q-21)//10,(q-21)%10;bn=0
-  if up=='P':
-   bn=(6-r)*3 if w else (r-1)*3
-   if 2<=c<=5 and 3<=r<=4:bn+=10
-  elif up in'NB':bn=(7-abs(2*c-7)-abs(2*r-7))*2
-  elif up=='R' and((w and r==1)or(not w and r==6)):bn=20
-  elif up=='K' and r in(0,7) and c in(1,2,6):bn=10
-  if up in'NBRQ' and att(b,q,not w) and not att(b,q,w):bn-=V[up]//2
-  s+=(V[up]+bn) if w else -(V[up]+bn)
+  up=p.upper();w=p.isupper();row,f=(q-21)//10,(q-21)%10
+  r=7-row if w else row;c=min(f,7-f)+min(r,7-r);pst=0
+  if up in'NBQ':pst={'N':6*c-20,'B':4*c-8,'Q':2*c-6}[up]
+  elif up=='P':pst=PA[r]+(PC[r] if 3<=f<=4 else 0)
+  elif up=='R':pst=(15 if r==6 else 0)+(5 if r==0 and 3<=f<=4 else 0)
+  elif up=='K':pst=KP[f] if r==0 else max(-50,-15*r)
+  v=V[up]+pst;s+=v if w else -v
  return s
 def ab(b,w,d,a,beta):
  if d<=0:
@@ -118,9 +115,9 @@ def choose(fen,legal):
   sf,st=b[f],b[t]
   b[t]=(pr.upper() if w else pr) if pr else sf
   b[f]='.'
-  is_c=sf in'Kk' and abs(f-t)==2
+  is_c=sf in'Kk'and abs(f-t)==2
   if is_c:r1,r2=(f+t)//2,(f+3 if t>f else f-4);b[r1],b[r2]=b[r2],'.'
-  sc=-ab(b,not w,3,-beta,-a)
+  sc=-ab(b,not w,2,-beta,-a)
   b[f],b[t]=sf,st
   if is_c:b[r2],b[r1]=b[r1],'.'
   if sc>best_s:best_s=sc;best_m=m
